@@ -290,10 +290,10 @@ CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);`;
         width: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-        background: #1f2937;
+        background: var(--color-slate-800);
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: #4b5563;
+        background-color: var(--color-slate-600);
         border-radius: 3px;
     }
 </style>

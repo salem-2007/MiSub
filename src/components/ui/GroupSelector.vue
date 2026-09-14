@@ -237,10 +237,10 @@
         background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
+        background-color: color-mix(in srgb, var(--color-gray-400) 50%, transparent);
         border-radius: 2px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(156, 163, 175, 0.8);
+        background-color: color-mix(in srgb, var(--color-gray-400) 80%, transparent);
     }
 </style>

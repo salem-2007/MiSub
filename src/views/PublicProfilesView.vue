@@ -9,7 +9,7 @@
         watch,
     } from 'vue';
     import { useToastStore } from '../stores/toast.js';
-    import { useI18n } from '../i18n/index.js';
+    import { hasStoredLocale, useI18n } from '../i18n/index.js';
     import QRCode from 'qrcode';
     import { api } from '../lib/http.js';
     import ProfileGrid from '../components/public/ProfileGrid.vue';
@@ -38,7 +38,7 @@
     const loading = ref(true);
     const error = ref(null);
     const { showToast } = useToastStore();
-    const { t } = useI18n();
+    const { t, setLocale } = useI18n();
     const config = ref({});
     const announcement = computed(() => config.value.announcement);
     const heroConfig = computed(
@@ -132,6 +132,12 @@
             if (data.success) {
                 publicProfiles.value = data.data;
                 config.value = data.config || {};
+
+                // 应用服务端默认显示语言（仅当访客未显式选择过语言时）
+                const serverLocale = config.value.defaultLocale;
+                if (serverLocale && !hasStoredLocale()) {
+                    setLocale(serverLocale);
+                }
             } else {
                 error.value = data.message || t('publicProfiles.fetchFailed');
             }
@@ -759,19 +765,19 @@
     }
 
     ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
+        background: var(--color-slate-300);
         border-radius: 3px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: var(--color-slate-400);
     }
 
     .dark ::-webkit-scrollbar-thumb {
-        background: #475569;
+        background: var(--color-slate-600);
     }
 
     .dark ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+        background: var(--color-slate-500);
     }
 </style>

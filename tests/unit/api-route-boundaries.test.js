@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { handleApiRequest } from '../../functions/modules/api-router.js';
+import { SettingsCache } from '../../functions/storage-adapter.js';
 
 function createKv(initial = {}) {
     const values = new Map(Object.entries(initial));
@@ -17,6 +18,10 @@ function createKv(initial = {}) {
 }
 
 describe('API route access boundaries', () => {
+    beforeEach(() => {
+        SettingsCache.clear();
+    });
+
     it('keeps documented public read endpoints reachable without an admin session', async () => {
         const env = { MISUB_KV: createKv() };
 
@@ -36,6 +41,35 @@ describe('API route access boundaries', () => {
         expect(publicConfig.status).toBe(200);
         expect(publicProfiles.status).toBe(200);
         expect(publicClients.status).toBe(200);
+    });
+
+    it('exposes the configured default locale on the public profiles endpoint', async () => {
+        const env = {
+            MISUB_KV: createKv({
+                worker_settings_v1: JSON.stringify({ defaultLocale: 'en-US' }),
+            }),
+        };
+
+        const response = await handleApiRequest(
+            new Request('https://example.com/api/public/profiles'),
+            env
+        );
+        const body = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(body.config.defaultLocale).toBe('en-US');
+    });
+
+    it('falls back to the default locale when the setting is absent', async () => {
+        const env = { MISUB_KV: createKv() };
+
+        const response = await handleApiRequest(
+            new Request('https://example.com/api/public/profiles'),
+            env
+        );
+        const body = await response.json();
+
+        expect(body.config.defaultLocale).toBe('zh-CN');
     });
 
     it('returns unauthenticated metadata for /api/data without exposing management data', async () => {

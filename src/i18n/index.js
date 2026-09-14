@@ -33,6 +33,10 @@ function writeStoredLocale(locale) {
     }
 }
 
+export function hasStoredLocale() {
+    return supportedCodes.has(readStoredLocale());
+}
+
 export function normalizeLocale(locale) {
     if (!locale || typeof locale !== 'string') return DEFAULT_LOCALE;
     if (supportedCodes.has(locale)) return locale;

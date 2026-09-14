@@ -91,7 +91,7 @@
     }
 
     .glass-panel {
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--surface-card-dark);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
     }

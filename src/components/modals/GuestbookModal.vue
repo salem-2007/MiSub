@@ -296,7 +296,7 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background-color: rgba(156, 163, 175, 0.5);
+        background-color: color-mix(in srgb, var(--color-gray-400) 50%, transparent);
         border-radius: 3px;
     }
 </style>

@@ -86,28 +86,28 @@
                 border: 'border-indigo-100 dark:border-indigo-800/30',
                 text: 'text-indigo-700 dark:text-indigo-300',
                 iconBg: 'bg-indigo-500',
-                glow: 'rgba(99, 102, 241, 0.15)',
+                glow: 'var(--glow-info)',
             },
             success: {
                 bg: 'bg-emerald-50/50 dark:bg-emerald-900/10',
                 border: 'border-emerald-100 dark:border-emerald-800/30',
                 text: 'text-emerald-700 dark:text-emerald-300',
                 iconBg: 'bg-emerald-500',
-                glow: 'rgba(16, 185, 129, 0.15)',
+                glow: 'var(--glow-success)',
             },
             warning: {
                 bg: 'bg-amber-50/50 dark:bg-amber-900/10',
                 border: 'border-amber-100 dark:border-amber-800/30',
                 text: 'text-amber-700 dark:text-amber-300',
                 iconBg: 'bg-amber-500',
-                glow: 'rgba(245, 158, 11, 0.15)',
+                glow: 'var(--glow-warning)',
             },
             error: {
                 bg: 'bg-rose-50/50 dark:bg-rose-900/10',
                 border: 'border-rose-100 dark:border-rose-800/30',
                 text: 'text-rose-700 dark:text-rose-300',
                 iconBg: 'bg-rose-500',
-                glow: 'rgba(244, 63, 94, 0.15)',
+                glow: 'var(--glow-danger)',
             },
         };
         return types[props.announcement.type] || types.info;
@@ -275,7 +275,7 @@
     }
 
     :deep(.prose a) {
-        color: var(--primary-600, #4f46e5);
+        color: var(--color-primary-600);
         text-decoration: underline;
         text-underline-offset: 2px;
         font-weight: 600;

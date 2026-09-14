@@ -40,7 +40,7 @@
 <template>
     <header
         :aria-label="t('nav.top')"
-        class="app-nav-bar md:hidden sticky top-0 z-50 flex items-center justify-between px-4 py-2.5 w-full bg-white/90 dark:bg-[#030712]/88 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/10 shadow-sm transition-all duration-300"
+        class="app-nav-bar md:hidden sticky top-0 z-50 flex items-center justify-between px-4 py-2.5 w-full bg-white/90 dark:bg-slate-950/88 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/10 shadow-sm transition-all duration-300"
     >
         <BrandLogo text-size-class="text-lg" :icon-size="32" />
 
@@ -57,7 +57,7 @@
 
     <header
         :aria-label="t('nav.main')"
-        class="app-nav-bar hidden md:block sticky top-0 z-50 w-full bg-white/90 dark:bg-[#030712]/88 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/10 transition-all duration-300"
+        class="app-nav-bar hidden md:block sticky top-0 z-50 w-full bg-white/90 dark:bg-slate-950/88 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/10 transition-all duration-300"
     >
         <div
             class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 md:h-[76px] flex items-center justify-between"

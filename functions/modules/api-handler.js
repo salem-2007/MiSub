@@ -725,6 +725,7 @@ export async function handlePublicProfilesRequest(env) {
         ]);
 
         const profileToken = settings.profileToken || 'profiles';
+        const defaultLocale = settings.defaultLocale || 'zh-CN';
 
         // 获取公告配置（仅当启用时返回）
         const announcement = settings.announcement?.enabled
@@ -791,6 +792,7 @@ export async function handlePublicProfilesRequest(env) {
                 hero,
                 guestbook,
                 customPage,
+                defaultLocale,
             },
         });
     } catch (e) {

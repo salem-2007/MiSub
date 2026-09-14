@@ -448,10 +448,10 @@
         width: 4px;
     }
     .max-h-48::-webkit-scrollbar-thumb {
-        background: rgba(99, 102, 241, 0.3);
+        background: color-mix(in srgb, var(--color-indigo-500) 30%, transparent);
         border-radius: 2px;
     }
     .max-h-48::-webkit-scrollbar-thumb:hover {
-        background: rgba(99, 102, 241, 0.5);
+        background: color-mix(in srgb, var(--color-indigo-500) 50%, transparent);
     }
 </style>

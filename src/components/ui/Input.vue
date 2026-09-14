@@ -141,7 +141,7 @@
                 :type="type"
                 :placeholder="placeholder"
                 :disabled="disabled"
-                class="w-full bg-white dark:bg-white/[0.035] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-[#f7f8f8] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/70 dark:focus:border-primary-400/60 focus:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full bg-white dark:bg-white/[0.035] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-[var(--text-primary-dark)] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/70 dark:focus:border-primary-400/60 focus:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 :class="[
                     currentSize.input,
                     hasIcon || hasPrefix ? 'pl-9' : '',

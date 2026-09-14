@@ -6,6 +6,7 @@ import {
     SUPPORTED_LOCALES,
     createI18n,
     detectInitialLocale,
+    hasStoredLocale,
     i18n,
     setLocale,
     t,
@@ -75,6 +76,17 @@ describe('MiSub i18n contract', () => {
         expect(localStorage.getItem('misub:locale')).toBe('en-US');
         // After toggling to en-US the button title switches to Chinese.
         expect(button.attributes('aria-label')).toContain('中文');
+    });
+
+    it('reports whether a visitor has an explicit stored locale preference', () => {
+        localStorage.clear();
+        expect(hasStoredLocale()).toBe(false);
+
+        setLocale('en-US');
+        expect(hasStoredLocale()).toBe(true);
+
+        localStorage.clear();
+        expect(hasStoredLocale()).toBe(false);
     });
 
     it('exposes the shared singleton for non-component code', () => {

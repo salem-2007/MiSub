@@ -63,6 +63,12 @@
   --misub-radius-xl: 1rem;
   --misub-radius-pill: 9999px;
 
+  /* Semantic status glows (announcement cards, decorative accents). */
+  --glow-info: rgba(99, 102, 241, 0.15);
+  --glow-success: rgba(16, 185, 129, 0.15);
+  --glow-warning: rgba(245, 158, 11, 0.15);
+  --glow-danger: rgba(244, 63, 94, 0.15);
+
   /* Keep overlays above fixed app chrome while preserving room for menus/toasts. */
   --z-nav: 20;
   --z-popover: 100;

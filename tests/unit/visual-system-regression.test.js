@@ -63,7 +63,7 @@ describe('MiSub visual system regression', () => {
             slots: { default: '<div>content</div>' },
         });
         const html = document.body.innerHTML;
-        expect(html).toContain('dark:bg-[#0f1011]');
+        expect(html).toContain('dark:bg-[var(--surface-panel-dark)]');
         expect(html).toContain('dark:border-white/10');
         expect(html).toContain('backdrop-blur-sm');
         modal.unmount();

@@ -201,4 +201,68 @@ describe('PublicProfilesView hero loading state', () => {
         expect(renderer.classes()).toContain('w-full');
         expect(renderer.classes()).not.toContain('max-w-7xl');
     });
+
+    it('applies the server default locale for visitors without an explicit preference', async () => {
+        localStorage.clear();
+        api.get.mockImplementation((url) => {
+            if (url === '/api/public/profiles') {
+                return Promise.resolve({
+                    success: true,
+                    data: [{ id: '1', name: 'Demo', enabled: true }],
+                    config: { defaultLocale: 'en-US' },
+                });
+            }
+            return Promise.resolve({ success: true, data: [] });
+        });
+
+        wrapper = mount(PublicProfilesView, {
+            global: {
+                stubs: {
+                    ProfileGrid: true,
+                    BaseIcon: true,
+                    AnnouncementCard: true,
+                    GuestbookModal: true,
+                    QuickImportModal: true,
+                    NodePreviewModal: true,
+                },
+            },
+        });
+
+        await flushPromises();
+        await vi.dynamicImportSettled();
+
+        expect(localStorage.getItem('misub:locale')).toBe('en-US');
+    });
+
+    it('does not override a visitor explicit locale with the server default', async () => {
+        localStorage.setItem('misub:locale', 'zh-CN');
+        api.get.mockImplementation((url) => {
+            if (url === '/api/public/profiles') {
+                return Promise.resolve({
+                    success: true,
+                    data: [{ id: '1', name: 'Demo', enabled: true }],
+                    config: { defaultLocale: 'en-US' },
+                });
+            }
+            return Promise.resolve({ success: true, data: [] });
+        });
+
+        wrapper = mount(PublicProfilesView, {
+            global: {
+                stubs: {
+                    ProfileGrid: true,
+                    BaseIcon: true,
+                    AnnouncementCard: true,
+                    GuestbookModal: true,
+                    QuickImportModal: true,
+                    NodePreviewModal: true,
+                },
+            },
+        });
+
+        await flushPromises();
+        await vi.dynamicImportSettled();
+
+        expect(localStorage.getItem('misub:locale')).toBe('zh-CN');
+    });
 });
