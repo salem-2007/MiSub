@@ -65,6 +65,7 @@
         pingingNodes,
         pingNodeId,
         pingAllNodes,
+        sortNodesByLatency,
     } = useManualNodes(markDirty);
 
     const handleSearchTermUpdate = (val) => {
@@ -101,6 +102,14 @@
     const handleAutoSortNodes = () => {
         autoSortNodes();
         showToast(t('manualNodes.sortedByRegion'), 'success');
+    };
+
+    const handleSortByLatency = () => {
+        const ok = sortNodesByLatency();
+        showToast(
+            ok ? t('manualNodes.sortByLatencyDone') : t('manualNodes.sortByLatencyNoData'),
+            ok ? 'success' : 'warning'
+        );
     };
 
     const handleDeduplicateNodes = () => {
@@ -204,6 +213,7 @@
             :pinging-nodes="pingingNodes"
             @ping="pingNodeId"
             @ping-all="pingAllNodes"
+            @sort-by-latency="handleSortByLatency"
         />
 
         <ManualNodeEditModal

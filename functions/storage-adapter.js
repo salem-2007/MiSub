@@ -558,17 +558,28 @@ class D1StorageAdapter {
 
     async getSubscriptionsByIds(ids = []) {
         if (!Array.isArray(ids) || ids.length === 0) return [];
-        const placeholders = ids.map(() => '?').join(',');
+        // D1 单条 SQL 最多绑定 100 个变量，超过会抛
+        // "too many SQL variables" 并导致整条查询失败。
+        // 分组引用较多节点/订阅时（如 >100）会触发此问题，
+        // 表现为订阅链接返回 "# No valid proxies found"。
+        // 因此按 90 一批分片查询后再合并结果。
+        const CHUNK_SIZE = 90;
+        const uniqueIds = Array.from(new Set(ids));
         try {
-            const results = await this.db
-                .prepare(`SELECT data FROM subscriptions WHERE id IN (${placeholders})`)
-                .bind(...ids)
-                .all();
-            const directHits = Array.isArray(results?.results)
-                ? results.results.map((row) => JSON.parse(row.data))
-                : [];
+            const directHits = [];
+            for (let i = 0; i < uniqueIds.length; i += CHUNK_SIZE) {
+                const chunk = uniqueIds.slice(i, i + CHUNK_SIZE);
+                const placeholders = chunk.map(() => '?').join(',');
+                const results = await this.db
+                    .prepare(`SELECT data FROM subscriptions WHERE id IN (${placeholders})`)
+                    .bind(...chunk)
+                    .all();
+                if (Array.isArray(results?.results)) {
+                    directHits.push(...results.results.map((row) => JSON.parse(row.data)));
+                }
+            }
             const foundIds = new Set(directHits.map((item) => item?.id).filter(Boolean));
-            const missingIds = ids.filter((id) => !foundIds.has(id));
+            const missingIds = uniqueIds.filter((id) => !foundIds.has(id));
 
             if (missingIds.length === 0) return directHits;
 

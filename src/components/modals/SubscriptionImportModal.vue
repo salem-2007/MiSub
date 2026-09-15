@@ -7,8 +7,10 @@
     import { api, APIError } from '../../lib/http.js';
     import FormatDetector from './SubscriptionImport/FormatDetector.vue';
     import ImportForm from './SubscriptionImport/ImportForm.vue';
+    import FileImport from './SubscriptionImport/FileImport.vue';
     import ParseResult from './SubscriptionImport/ParseResult.vue';
     import GroupSelector from '../ui/GroupSelector.vue'; // Added
+    import { readFilesAsText } from '../../utils/importFile.js';
 
     const isDev = import.meta.env.DEV;
 
@@ -24,6 +26,7 @@
 
     const emit = defineEmits(['update:show']);
 
+    const activeTab = ref('url'); // 'url' | 'file'
     const subscriptionUrl = ref('');
     const isLoading = ref(false);
     const errorMessage = ref('');
@@ -44,9 +47,100 @@
                 successMessage.value = '';
                 parseStatus.value = '';
                 isLoading.value = false;
+                activeTab.value = 'url';
             }
         }
     );
+
+    /**
+     * 把后端返回的节点写入手动节点列表（URL 导入与文件导入共用）。
+     * @returns {boolean} 是否至少写入了一个节点
+     */
+    const commitParsedNodes = (backendNodes, targetGroupName, sourceLabel) => {
+        const nodes = (backendNodes || []).map((node) => ({
+            id: generateNodeId(),
+            name: node.name || 'Unknown',
+            url: node.url,
+            enabled: true,
+            protocol: node.protocol || 'unknown',
+            source: 'import',
+        }));
+
+        if (nodes.length === 0) return false;
+
+        // 去重处理
+        const uniqueNodes = nodes.filter(
+            (node, index, self) => index === self.findIndex((n) => n.url === node.url)
+        );
+        const duplicateCount = nodes.length - uniqueNodes.length;
+
+        props.addNodesFromBulk(uniqueNodes, targetGroupName);
+
+        const successMsg =
+            `成功添加 ${uniqueNodes.length} 个节点` +
+            (targetGroupName ? ` 到分组 "${targetGroupName}"` : '') +
+            (duplicateCount > 0 ? `（去重 ${duplicateCount} 个重复节点）` : '');
+
+        successMessage.value = successMsg;
+        toastStore.showToast(successMsg, 'success');
+        if (isDev) {
+            console.debug(
+                `[Import] ${sourceLabel}: ${uniqueNodes.length} unique nodes, ${duplicateCount} duplicates`
+            );
+        }
+
+        setTimeout(() => {
+            emit('update:show', false);
+        }, 2000);
+        return true;
+    };
+
+    /**
+     * 上传本地文件导入：读取文件文本 → 后端解析 → 入库。
+     */
+    const importFiles = async (fileList) => {
+        const targetGroupName = groupName.value;
+        errorMessage.value = '';
+        successMessage.value = '';
+        isLoading.value = true;
+
+        try {
+            parseStatus.value = '正在读取文件...';
+            const { text, fileCount } = await readFilesAsText(fileList);
+
+            if (!text.trim()) {
+                throw new Error('文件内容为空，未找到可导入的内容。');
+            }
+
+            parseStatus.value = `正在解析 ${fileCount} 个文件的内容...`;
+
+            const parseResult = await api.post('/api/parse_subscription', { content: text });
+
+            if (!parseResult.success) {
+                throw new Error(parseResult.error || '解析文件失败');
+            }
+
+            const backendNodes = parseResult.data?.nodes || [];
+
+            if (backendNodes.length === 0) {
+                parseStatus.value = '';
+                throw new Error(
+                    '未能从文件中解析出任何有效节点。请确认文件包含受支持的节点链接、Clash/Surge 配置或 Base64 订阅内容。'
+                );
+            }
+
+            parseStatus.value = '';
+            commitParsedNodes(backendNodes, targetGroupName, 'File upload');
+        } catch (error) {
+            console.error('文件导入失败:', error);
+            handleError(error, 'File Import Error', { parseStatus: parseStatus.value });
+            parseStatus.value = '';
+            errorMessage.value = error.message || '导入失败';
+            toastStore.showToast(`导入失败: ${error.message}`, 'error');
+        } finally {
+            isLoading.value = false;
+        }
+    };
 
     /**
      * 验证URL格式
@@ -134,41 +228,7 @@
             const backendNodes = parseResult.data.nodes || [];
 
             if (backendNodes.length > 0) {
-                // 转换为前端格式
-                const nodes = backendNodes.map((node) => ({
-                    id: generateNodeId(),
-                    name: node.name || 'Unknown',
-                    url: node.url,
-                    enabled: true,
-                    protocol: node.protocol || 'unknown',
-                    source: 'import',
-                }));
-
-                // 去重处理
-                const uniqueNodes = nodes.filter(
-                    (node, index, self) => index === self.findIndex((n) => n.url === node.url)
-                );
-
-                const duplicateCount = nodes.length - uniqueNodes.length;
-
-                props.addNodesFromBulk(uniqueNodes, targetGroupName); // Updated
-
-                const successMsg =
-                    `成功添加 ${uniqueNodes.length} 个节点` +
-                    (targetGroupName ? ` 到分组 "${targetGroupName}"` : '') +
-                    (duplicateCount > 0 ? `（去重 ${duplicateCount} 个重复节点）` : '');
-                successMessage.value = successMsg;
-
-                toastStore.showToast(successMsg, 'success');
-                if (isDev) {
-                    console.debug(
-                        `[Import] Success: Backend API, ${uniqueNodes.length} unique nodes, ${duplicateCount} duplicates`
-                    );
-                }
-
-                setTimeout(() => {
-                    emit('update:show', false);
-                }, 2000);
+                commitParsedNodes(backendNodes, targetGroupName, 'URL import');
             } else {
                 parseStatus.value = '';
                 throw new Error(
@@ -194,14 +254,56 @@
     <Modal
         :show="show"
         @update:show="emit('update:show', $event)"
-        @confirm="importSubscription"
-        confirm-text="导入"
-        :confirm-disabled="isLoading || !subscriptionUrl.trim()"
+        @confirm="activeTab === 'url' ? importSubscription() : null"
     >
-        <template #title>导入订阅</template>
+        <template #title>导入节点 / 订阅</template>
+        <template #footer>
+            <button
+                @click="emit('update:show', false)"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold text-sm misub-radius-lg transition-colors"
+            >
+                取消
+            </button>
+            <button
+                v-if="activeTab === 'url'"
+                @click="importSubscription"
+                :disabled="isLoading || !subscriptionUrl.trim()"
+                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm misub-radius-lg transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+                导入
+            </button>
+        </template>
         <template #body>
             <div class="space-y-4">
-                <FormatDetector />
+                <!-- 来源切换 -->
+                <div
+                    class="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-white/5 misub-radius-lg"
+                >
+                    <button
+                        type="button"
+                        class="py-1.5 text-sm font-medium misub-radius-md transition-colors"
+                        :class="
+                            activeTab === 'url'
+                                ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-xs'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        "
+                        @click="activeTab = 'url'"
+                    >
+                        订阅链接
+                    </button>
+                    <button
+                        type="button"
+                        class="py-1.5 text-sm font-medium misub-radius-md transition-colors"
+                        :class="
+                            activeTab === 'file'
+                                ? 'bg-white dark:bg-gray-800 text-primary-600 dark:text-primary-400 shadow-xs'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                        "
+                        @click="activeTab = 'file'"
+                    >
+                        上传文件
+                    </button>
+                </div>
 
                 <!-- Group Selector Added -->
                 <div class="relative">
@@ -218,17 +320,29 @@
                     />
                 </div>
 
-                <ImportForm
-                    :subscription-url="subscriptionUrl"
-                    :is-loading="isLoading"
-                    @update:subscription-url="subscriptionUrl = $event"
-                    @submit="importSubscription"
-                />
-                <ParseResult
-                    :is-loading="isLoading"
+                <template v-if="activeTab === 'url'">
+                    <FormatDetector />
+                    <ImportForm
+                        :subscription-url="subscriptionUrl"
+                        :is-loading="isLoading"
+                        @update:subscription-url="subscriptionUrl = $event"
+                        @submit="importSubscription"
+                    />
+                    <ParseResult
+                        :is-loading="isLoading"
+                        :parse-status="parseStatus"
+                        :error-message="errorMessage"
+                        :success-message="successMessage"
+                    />
+                </template>
+
+                <FileImport
+                    v-else
+                    :is-processing="isLoading"
                     :parse-status="parseStatus"
                     :error-message="errorMessage"
                     :success-message="successMessage"
+                    @files="importFiles"
                 />
             </div>
         </template>

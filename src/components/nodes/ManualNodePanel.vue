@@ -42,6 +42,7 @@
         'open-batch-group-modal', // Added
         'ping',
         'ping-all',
+        'sort-by-latency',
         'manage-groups',
     ]);
 
@@ -193,6 +194,7 @@
             @delete-all="handleDeleteAll"
             @toggle-selection-mode="toggleSelectionMode"
             @ping-all="emit('ping-all')"
+            @sort-by-latency="emit('sort-by-latency')"
             @manage-groups="emit('manage-groups')"
         />
 

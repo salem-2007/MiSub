@@ -9,6 +9,7 @@
     import { useManualNodes } from '../../composables/useManualNodes.js';
     import { useI18n } from '../../i18n/index.js';
     import { parseSurgeConfig } from '../../utils/protocolConverter.js';
+    import { IMPORT_FILE_ACCEPT, readFilesAsText } from '../../utils/importFile.js';
 
     const props = defineProps({
         show: Boolean,
@@ -28,6 +29,43 @@
     const { addSubscriptionsFromBulk } = useSubscriptions(markDirty);
     const { addNodesFromBulk } = useManualNodes(markDirty);
     const { handleBulkImport } = useBulkImportLogic({ addSubscriptionsFromBulk, addNodesFromBulk });
+
+    // [文件导入] 新增节点时支持选择本地文件，内容直接填入编辑框，复用多行预览与批量导入流程
+    const fileInputRef = ref(null);
+    const fileAccept = IMPORT_FILE_ACCEPT;
+    const fileNameHint = ref('');
+    const isReadingFile = ref(false);
+
+    const openFilePicker = () => {
+        fileInputRef.value?.click();
+    };
+
+    const onFilePicked = async (event) => {
+        const files = event.target.files;
+        event.target.value = '';
+        if (!files || !files.length || !props.editingNode) return;
+
+        isReadingFile.value = true;
+        try {
+            const { text, fileCount } = await readFilesAsText(files);
+            if (!text.trim()) {
+                fileNameHint.value = t('manualNodes.fileImportEmpty');
+                return;
+            }
+            // 合并进编辑框（已有内容则追加），交给既有的多行解析逻辑
+            const existing = (props.editingNode.url || '').trim();
+            props.editingNode.url = existing ? `${existing}\n${text}` : text;
+            fileNameHint.value =
+                fileCount > 1
+                    ? t('manualNodes.fileImportPickedMulti', { count: fileCount })
+                    : files[0].name;
+        } catch (error) {
+            console.error('读取文件失败:', error);
+            fileNameHint.value = error.message || t('manualNodes.fileImportFailed');
+        } finally {
+            isReadingFile.value = false;
+        }
+    };
 
     // 浮动标签状态
     const nameFocused = ref(false);
@@ -314,6 +352,57 @@
 
                 <!-- 节点链接 -->
                 <div class="relative group">
+                    <!-- [文件导入推荐] 新增节点时，优先引导用户直接上传文件自动识别。
+                         选中的文件会写入编辑框，复用既有的多行预览 + 批量导入流程。 -->
+                    <div
+                        v-if="isNew"
+                        class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-dashed border-indigo-300/70 dark:border-indigo-500/40 bg-indigo-50/60 dark:bg-indigo-500/10 px-3 py-2.5"
+                    >
+                        <div
+                            class="flex items-center gap-2 text-xs text-indigo-700 dark:text-indigo-300"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 shrink-0"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
+                                />
+                            </svg>
+                            <span>{{ t('manualNodes.fileImportHint') }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <input
+                                ref="fileInputRef"
+                                type="file"
+                                multiple
+                                class="hidden"
+                                :accept="fileAccept"
+                                @change="onFilePicked"
+                            />
+                            <button
+                                type="button"
+                                class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                @click="openFilePicker"
+                            >
+                                {{ t('manualNodes.fileImportPick') }}
+                            </button>
+                            <span
+                                v-if="fileNameHint"
+                                class="text-xs text-gray-500 dark:text-gray-400 max-w-[10rem] truncate"
+                                :title="fileNameHint"
+                            >
+                                {{ fileNameHint }}
+                            </span>
+                        </div>
+                    </div>
+
                     <div
                         class="relative border misub-radius-lg transition-all duration-300 overflow-hidden bg-gray-50 dark:bg-black/20 border-gray-200 dark:border-white/10"
                         :class="[

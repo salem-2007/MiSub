@@ -617,7 +617,13 @@ export async function handleMisubRequest(context) {
     if (profileIdentifier) {
         // [修正] 使用 config 變量
         if (!token || token !== config.profileToken) {
-            return new Response('Invalid Profile Token', { status: 403 });
+            // [伪装加固] 不使用裸 403/403 文本响应：403 会暴露「该地址存在一个受保护的服务」，
+            // 与首页的伪装行为形成差异，可被扫描器识别。改为返回伪装页（或 404），
+            // 与未授权的 SPA 路由行为保持一致。
+            return (
+                createDisguiseResponse(settings?.disguise, request.url) ||
+                new Response('Not Found', { status: 404 })
+            );
         }
         currentProfile = allProfiles.find(
             (p) => (p.customId && p.customId === profileIdentifier) || p.id === profileIdentifier
@@ -729,7 +735,11 @@ export async function handleMisubRequest(context) {
     } else {
         // [修正] 使用 config 變量
         if (!token || token !== config.mytoken) {
-            return new Response('Invalid Token', { status: 403 });
+            // [伪装加固] 同 profile token：避免裸 403 暴露服务存在
+            return (
+                createDisguiseResponse(settings?.disguise, request.url) ||
+                new Response('Not Found', { status: 404 })
+            );
         }
         targetMisubs = allMisubs.filter((s) => s.enabled);
     }

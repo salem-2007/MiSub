@@ -9,6 +9,7 @@ import { parseNodeInfo, extractNodeRegion } from './geo-utils.js';
 // 所以需要向上两级找到 functions/utils/
 import { fixNodeUrlEncoding } from '../../utils/node-utils.js';
 import { convertClashProxyToUrl } from '../../utils/clash-to-url.js';
+import { extractSingboxNodes } from './singbox-to-url.js';
 import { validateSS2022Node, fixSS2022Node } from './ss2022-validator.js';
 import { extractNodeMetadata } from './metadata-extractor.js';
 
@@ -188,6 +189,20 @@ export function extractValidNodes(text) {
     if (!text || typeof text !== 'string') return [];
 
     let nodes = [];
+
+    // 0. 尝试解析为 sing-box / JSON 配置（outbounds 列表）
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{')) {
+        try {
+            const jsonObj = JSON.parse(trimmed);
+            if (jsonObj && Array.isArray(jsonObj.outbounds)) {
+                nodes = extractSingboxNodes(jsonObj);
+                if (nodes.length > 0) return nodes;
+            }
+        } catch (e) {
+            console.debug('[NodeParser] JSON parse failed, trying other formats:', e);
+        }
+    }
 
     // 1. 尝试解析为 Clash YAML
     // 只有当包含 proxies 关键字时才尝试，避免普通文本解析报错
